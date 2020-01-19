@@ -89,7 +89,6 @@ HIAI_StatusT DataInputEngine::Init(const hiai::AIConfig& config, const  std::vec
         return HIAI_ERROR;
     }
     data_config_->batchSize = DEFAULT_BATCH_SIZE;
-    data_config_->randomNumber = DEFAULT_RANDOM_NUMBER;
     data_config_->runMode = "all";
 
     //read the config of dataset
@@ -97,14 +96,10 @@ HIAI_StatusT DataInputEngine::Init(const hiai::AIConfig& config, const  std::vec
     {
         const ::hiai::AIConfigItem& item = config.items(index);
         std::string name = item.name();
-        if(name == "batch"){
-            int batchSize = atoi(item.value().data());
-            data_config_->batchSize = batchSize;
-        }else if(name == "path"){
+        if(name == "path"){
             data_config_->path = item.value();
-        }else if(name == "useAll"){
-            data_config_->runMode = item.value();
-        }else if(name == "target"){
+        }
+        else if(name == "target"){
             data_config_->target = item.value();
         }
     }
@@ -233,18 +228,18 @@ HIAI_StatusT DataInputEngine::makeImageInfo(NewImageParaT* imgData, int index) {
 
 /**
 * @brief: send batch for Emulator and OI
-* @[in]: batchId, batchId;
-* @[in]: batchNum, the total number of batch;
+* @[in]: frameId, frameId;
+* @[in]: totalCount, the total number of batch;
 * @[in]: imageInfoBatch, the send data;
 * @[return]: HIAI_StatusT
 */
-HIAI_StatusT DataInputEngine::SendBatch(int batchId, int batchNum, std::shared_ptr<BatchImageParaWithScaleT> imageInfoBatch){
+HIAI_StatusT DataInputEngine::SendBatch(int frameId, int totalCount, std::shared_ptr<BatchImageParaWithScaleT> imageInfoBatch){
     HIAI_StatusT hiai_ret = HIAI_OK;
     imageInfoBatch->b_info.batch_size = imageInfoBatch->v_img.size();
     imageInfoBatch->b_info.max_batch_size = data_config_->batchSize;
-    imageInfoBatch->b_info.batch_ID = batchId;
-    imageInfoBatch->b_info.is_first = (batchId == 0 ? true : false);
-    imageInfoBatch->b_info.is_last = (batchId == batchNum - 1 ? true : false);
+    imageInfoBatch->b_info.batch_ID = frameId;
+    imageInfoBatch->b_info.is_first = (frameId == 0 ? true : false);
+    imageInfoBatch->b_info.is_last = (frameId == totalCount - 1 ? true : false);
 
     do{
         hiai_ret = SendData(DEFAULT_DATA_PORT, "BatchImageParaWithScaleT", std::static_pointer_cast<void>(imageInfoBatch));
@@ -256,7 +251,7 @@ HIAI_StatusT DataInputEngine::SendBatch(int batchId, int batchNum, std::shared_p
     }while(hiai_ret == HIAI_QUEUE_FULL);
 
     if(HIAI_OK != hiai_ret){
-        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[DataInputEngine] SendData batch %u failed! error code: %u", batchId, hiai_ret);
+        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[DataInputEngine] SendData batch %u failed! error code: %u", frameId, hiai_ret);
     }
     return hiai_ret;
 }
@@ -268,30 +263,24 @@ HIAI_StatusT DataInputEngine::SendBatch(int batchId, int batchNum, std::shared_p
 HIAI_StatusT DataInputEngine::RunOnSameSide(){
     HIAI_StatusT ret = HIAI_OK;
     int totalCount = dataset_info_.size();
-    int batchNum = totalCount % data_config_->batchSize == 0 ? totalCount / data_config_->batchSize : totalCount / data_config_->batchSize + 1;
-    int i = 0;
     HIAI_ENGINE_LOG(HIAI_IDE_INFO, "[DataInputEngine] run on %s, run %u images, batch size is %u", data_config_->target.c_str(), totalCount, data_config_->batchSize);
-    for(int batchId = 0; batchId < batchNum && i < totalCount; batchId++){
+    for(int frameId = 0; frameId < totalCount; frameId++){
         //convert batch image infos to BatchImageParaWithScaleT
         std::shared_ptr<BatchImageParaWithScaleT> imageInfoBatch = std::make_shared<BatchImageParaWithScaleT>();
         if(imageInfoBatch == NULL){
             HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[DataInputEngine] make shared for BatchImageParaWithScaleT error!");
             return HIAI_ERROR;
         }
-        for(int j = 0 ; j < data_config_->batchSize && i < totalCount; j++){
-            NewImageParaT imgData;
-            int frameId = i;
-            ret = makeImageInfo(&imgData, frameId);
-            if(HIAI_OK != ret) {
-                HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[DataInputEngine] Error: make image info frame id %u for batch id %u failed! Stop to send images!",frameId, batchId);
-                return ret;
-            }
-            imageInfoBatch->v_img.push_back(imgData);
-            imageInfoBatch->b_info.frame_ID.push_back(dataset_info_[frameId].id);
-            i++;
+        NewImageParaT imgData;
+        ret = makeImageInfo(&imgData, frameId);
+        if(HIAI_OK != ret) {
+            HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[DataInputEngine] Error: make image info frame id %u for batch id %u failed! Stop to send images!",frameId, frameId);
+            return ret;
         }
+        imageInfoBatch->v_img.push_back(imgData);
+        imageInfoBatch->b_info.frame_ID.push_back(dataset_info_[frameId].id);
         //then send data
-        ret = SendBatch(batchId, batchNum, imageInfoBatch);
+        ret = SendBatch(frameId, totalCount, imageInfoBatch);
         if(HIAI_OK != ret) {
             return ret;
         }
@@ -301,33 +290,18 @@ HIAI_StatusT DataInputEngine::RunOnSameSide(){
 
 
 /**
-* @brief: check whether run images on same side
-* @[return]: HIAI_StatusT
-*/
-bool DataInputEngine::isOnSameSide(){
-    if (data_config_->target == SIMULATOR_LOCAL
-        || data_config_->target == OI) {
-        return true;
-    }
-    return false;
-}
-
-/**
 * @brief: Send Sentinel Image
 */
 HIAI_StatusT DataInputEngine::SendSentinelImage()
 {
     HIAI_StatusT ret = HIAI_OK;
     //all data send ok, then send a Sentinel info to other engine for end
-    if(isOnSameSide()){
-        //if all engine on one side, use BatchImageParaWithScaleT to send data
-        shared_ptr<BatchImageParaWithScaleT> image_handle = std::make_shared<BatchImageParaWithScaleT>();
-        if(image_handle == NULL){
-            HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[DataInputEngine] make shared for BatchImageParaWithScaleT error!");
-            return HIAI_ERROR;
-        }
-        ret = SendBatch(-1, 1, image_handle);
+    shared_ptr<BatchImageParaWithScaleT> image_handle = std::make_shared<BatchImageParaWithScaleT>();
+    if(image_handle == NULL){
+        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[DataInputEngine] make shared for BatchImageParaWithScaleT error!");
+        return HIAI_ERROR;
     }
+    ret = SendBatch(-1, 1, image_handle);
     return ret;
 }
 
@@ -343,10 +317,9 @@ HIAI_IMPL_ENGINE_PROCESS("DataInputEngine", DataInputEngine, INPUT_SIZE)
     std::static_pointer_cast<string>(arg0);
     gettimeofday(&start1, NULL);
     HIAI_StatusT ret = HIAI_OK;
-    if(isOnSameSide()){
-        //all engine on one side
-        ret = RunOnSameSide();
-    }
+
+    ret = RunOnSameSide();
+
     //send sentinel image
     HIAI_ENGINE_LOG(HIAI_IDE_INFO, "[DataInputEngine] send sentinel image!");
     ret = SendSentinelImage();

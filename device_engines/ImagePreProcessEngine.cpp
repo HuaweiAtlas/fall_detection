@@ -63,8 +63,6 @@ HIAI_StatusT ImagePreProcessEngine::Init(const hiai::AIConfig& config, const std
             ss >> (*dvppConfig_).crop_height;
         } else if ("self_crop" == name) {
             ss >> (*dvppConfig_).self_crop;
-        } else if ("dump_value" == name) {
-            ss >> (*dvppConfig_).dump_value;
         } else if ("project_name" == name) {
             ss >> (*dvppConfig_).project_name;
         } else if ("resize_height" == name) {
@@ -204,52 +202,6 @@ void ImagePreProcessEngine::ClearData()
     dvppOut_ = NULL;
 }
 
-//png pic process flow:
-//  1. DVPP_CTL_PNGD_PROC
-//  2. DVPP_CTL_TOOL_CASE_GET_RESIZE_PARAM
-//  3. DVPP_CTL_VPC_PROC
-int ImagePreProcessEngine::HandlePng(const ImageData<u_int8_t> &img)
-{
-    if (NULL == pidvppapi_) {
-        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[ImagePreProcessEngine] pidvppapi is null");
-        return HIAI_ERROR;
-    }
-
-    struct PngInputInfoAPI inputPngData; //input data
-    inputPngData.inputData = (void *)(img.data.get()); //input data pointer addr
-    inputPngData.inputSize = img.size; //input data length
-    inputPngData.transformFlag = (*dvppConfig_).transform_flag; //whether to transform
-
-    struct PngOutputInfoAPI outputPngData; //output data
-
-    dvppapi_ctl_msg dvppApiCtlMsg;
-    dvppApiCtlMsg.in = (void *)(&inputPngData);
-    dvppApiCtlMsg.in_size = sizeof(struct PngInputInfoAPI);
-    dvppApiCtlMsg.out = (void *)(&outputPngData);
-    dvppApiCtlMsg.out_size = sizeof(struct PngOutputInfoAPI);
-
-    if (0 != DvppCtl(pidvppapi_, DVPP_CTL_PNGD_PROC, &dvppApiCtlMsg)) { //if this single jpeg pic is processed with error, return directly, and process next pic
-        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[ImagePreProcessEngine]PNGDERROR, FrameID:%u", imageFrameID_);
-        if (outputPngData.address != NULL) { //release memory from caller.
-            munmap(outputPngData.address, ALIGN_UP(outputPngData.size + VPC_OUT_WIDTH_STRIDE, MAP_2M));
-            outputPngData.address = NULL;
-        }
-        return HIAI_ERROR;
-    }
-
-    int ret = HandleVpcWithParam((unsigned char *)outputPngData.outputData, outputPngData.widthAlign, outputPngData.highAlign,
-        outputPngData.outputSize, img, FILE_TYPE_PIC_PNG, outputPngData.format);
-
-    if (outputPngData.address != NULL) { //release memory from caller.
-        munmap(outputPngData.address, ALIGN_UP(outputPngData.size + VPC_OUT_WIDTH_STRIDE, MAP_2M));
-        outputPngData.address = NULL;
-    }
-    if (HIAI_OK != ret) { //if vpc process with error, return directly, and then process next.
-        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[ImagePreProcessEngine]VPCERROR, FrameID:%u", imageFrameID_);
-        return HIAI_ERROR;
-    }
-    return HIAI_OK;
-}
 
 bool ImagePreProcessEngine::NeedCrop()
 {
@@ -309,71 +261,6 @@ bool ImagePreProcessEngine::ProcessCrop(VpcUserCropConfigure &area, const int &w
     return true;
 }
 
-int ImagePreProcessEngine::HandleVpc(const ImageData<u_int8_t> &img)
-{
-    if (NULL == img.data || NULL == img.data.get()) {
-        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[ImagePreProcessEngine]img.data is null, ERROR");
-        return HIAI_ERROR;
-    }
-
-    if (IMAGE_TYPE_NV12 != (ImageTypeT)img.format) {
-        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[ImagePreProcessEngine]the format is not yuv, ERROR");
-        return HIAI_ERROR;
-    }
-
-    unsigned char *alignBuffer = img.data.get();
-    int alignWidth = img.width;
-    int alignHigh = img.height;
-    int alignImageLen = alignWidth * alignHigh * 3 / 2; //the size of yuv data is 1.5 times of width*height
-    bool alignMmapFlag = false;
-
-    //if width or height is not align, copy memory
-    if (0 != (img.width % VPC_OUT_WIDTH_STRIDE) || 0 != (img.height % VPC_OUT_HIGH_STRIDE)) {
-        alignMmapFlag = true;
-        alignWidth = ALIGN_UP(img.width, VPC_OUT_WIDTH_STRIDE);
-        alignHigh = ALIGN_UP(img.height, VPC_OUT_HIGH_STRIDE);
-        alignImageLen = alignWidth * alignHigh * 3 / 2;
-        alignBuffer = (unsigned char *)HIAI_DVPP_DMalloc(alignImageLen);
-        if (NULL == alignBuffer) {
-            HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[ImagePreProcessEngine]HIAI_DVPP_DMalloc alignBuffer is null, ERROR");
-            return HIAI_ERROR;
-        }
-        for (unsigned int i = 0; i < img.height; i++) {
-            int ret = memcpy_s(alignBuffer + i * alignWidth, alignWidth, img.data.get() + i * img.width, img.width);
-            if (0 != ret) {
-                HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[ImagePreProcessEngine]memcpy_s error in copy Y");
-                HIAI_DVPP_DFree(alignBuffer);
-                alignBuffer = NULL;
-                return HIAI_ERROR;
-            }
-        }
-        for (unsigned int i = 0; i < img.height / 2; i++) {
-            int ret = memcpy_s(alignBuffer + i * alignWidth + alignWidth * alignHigh, alignWidth,
-                        img.data.get() + i * img.width + img.width * img.height, img.width);
-            if (0 != ret) {
-                HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[ImagePreProcessEngine]memcpy_s error in copy UV");
-                HIAI_DVPP_DFree(alignBuffer);
-                alignBuffer = NULL;
-                return HIAI_ERROR;
-            }
-        }
-    }
-
-    int ret = HandleVpcWithParam(alignBuffer, alignWidth, alignHigh, alignImageLen, img, FILE_TYPE_YUV, 3);
-    if (HIAI_OK != ret) { //if vpc process with error, return directly, and then process next.
-        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[ImagePreProcessEngine] call DVPP_CTL_VPC_PROC process faild");
-        if (alignMmapFlag) { //release memory
-            HIAI_DVPP_DFree(alignBuffer);
-            alignBuffer = NULL;
-        }
-        return HIAI_ERROR;
-    }
-    if (alignMmapFlag) { //release memory
-        HIAI_DVPP_DFree(alignBuffer);
-        alignBuffer = NULL;
-    }
-    return HIAI_OK;
-}
 
 int ImagePreProcessEngine::HandleVpcWithParam(const unsigned char* buffer, const int &width, const int &height, const long &bufferSize,
         const ImageData<u_int8_t> &img, const FILE_TYPE &type, const int &format)
@@ -408,20 +295,6 @@ int ImagePreProcessEngine::HandleVpcWithParam(const unsigned char* buffer, const
                 HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[ImagePreProcessEngine]Jpegd out format[%d] is error", format);
                 break;
        }
-    } else if (type == FILE_TYPE_PIC_PNG) {
-        switch(format) {
-            case DVPP_PNG_DECODE_OUT_RGB:
-                userImage.inputFormat = INPUT_RGB;
-                break;
-            case DVPP_PNG_DECODE_OUT_RGBA:
-                userImage.inputFormat = INPUT_RGBA;
-                break;
-            default:
-                HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[ImagePreProcessEngine]Pngd out format[%d] is error", format);
-                break;
-        }
-    } else {
-        userImage.inputFormat = INPUT_YUV420_SEMI_PLANNER_UV;
     }
     userImage.widthStride = width;
     userImage.heightStride = height;
@@ -555,60 +428,6 @@ int ImagePreProcessEngine::HandleVpcWithParam(const unsigned char* buffer, const
     dvppOut_->v_img.push_back(*image);
     dvppOut_->b_info.frame_ID.push_back(imageFrameID_);
 
-    if (1 == dvppConfig_->dump_value) {
-        HIAI_ENGINE_LOG(HIAI_IDE_INFO, "[ImagePreProcessEngine]preprocess need dump, width:%u, height:%u", image->img.width, image->img.height);
-        DvppPreprocessInfo info = {resizeWidth, resizeHeight, outputConfigure->widthStride, outputConfigure->heightStride, imageFrameID_, orderInFrame_};
-        return StorePreprocessImage(outBuffer.get(), image->img.size, info);
-    }
-
-    return HIAI_OK;
-}
-
-int ImagePreProcessEngine::StorePreprocessImage(const u_int8_t *outBuffer, const uint32_t &size, const DvppPreprocessInfo &info)
-{
-    if(NULL == outBuffer) {
-        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[ImagePreProcessEngine]StorePreprocessImage, outBuffer is null!");
-        return HIAI_ERROR;
-    }
-    time_t now = time(0);
-    //important:after dvpp, the output data is that width is aligned with 128, and height is aligned with 16.
-    std::string fileName = dvppConfig_->userHome + "/projects/" + dvppConfig_->project_name + "/out/PreProcess/ImagePreProcessEngine/"
-        + std::to_string(imageFrameID_) + "_" + std::to_string(orderInFrame_ + 1) + "_" + std::to_string(now) + "_preprocessYUV";
-    IDE_SESSION session = ideOpenFile(NULL, (char *)fileName.c_str());
-    HIAI_ENGINE_LOG("save fileName:%s!", fileName.c_str());
-    if (NULL == session) {
-        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[ImagePreProcessEngine]StorePreprocessImage, ideOpenFile is null!");
-        return HIAI_ERROR;
-    }
-
-    uint32_t sendSize = 0;
-    char *tmp = (char *)outBuffer;
-    while (sendSize < size) {
-        uint32_t everySize = (sendSize + SEND_BUFFER_SIZE > size)  ? (size - sendSize) : SEND_BUFFER_SIZE;
-        if (IDE_DAEMON_NONE_ERROR != ideWriteFile(session, tmp, everySize)) {
-            HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[ImagePreProcessEngine]StorePreprocessImage, ideWriteFile error!");
-            ideCloseFile(session);
-            return HIAI_ERROR;
-        }
-        tmp += everySize;
-        sendSize += everySize;
-    }
-
-    HIAI_ENGINE_LOG("preprocess info, resiz_width:%u, resize_height:%u, preprocess_width:%u, preprocess_height:%u, frameID:%u, order:%u",
-        info.resize_width, info.resize_height, info.preprocess_width, info.preprocess_height, info.frameID, info.orderInFrame);
-    //add info of yuv file to file end which are used to transfer to jpg
-    if (IDE_DAEMON_NONE_ERROR != ideWriteFile(session, &info, sizeof(info))) {
-        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[ImagePreProcessEngine]StorePreprocessImage, ideWriteFile error!");
-        ideCloseFile(session);
-        return HIAI_ERROR;
-    }
-
-    usleep(SEND_DATA_SLEEP_MS); //assure ide-daemon-host catch all data.
-    if (IDE_DAEMON_NONE_ERROR != ideCloseFile(session)) {
-        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[ImagePreProcessEngine]StorePreprocessImage, ideCloseFile error!");
-        return HIAI_ERROR;
-    }
-    HIAI_ENGINE_LOG(HIAI_IDE_INFO, "[ImagePreProcessEngine]StorePreprocessImage, storage success!, sendSize:%u, size:%u", sendSize, size);
     return HIAI_OK;
 }
 
@@ -640,42 +459,6 @@ int ImagePreProcessEngine::HandleDvpp()
                 if (HIAI_OK != HandleJpeg((*iter).img)) {
                     HIAI_ENGINE_LOG(HIAI_IDE_WARNING, "[ImagePreProcessEngine]Handle One Image Error, Continue Next");
                     continue;
-                }
-            }
-        } else if (IMAGE_TYPE_PNG == (ImageTypeT)(*iter).img.format) {
-            if(NULL != dvppCropIn_ && NULL != dvppCropIn_.get()) {
-                if(dvppCropIn_->v_location.empty() || dvppCropIn_->v_location[indexCrop].range.empty()){
-                    continue;
-                }
-                for(std::vector<Rectangle<Point2D>>::iterator iterRect = dvppCropIn_->v_location[indexCrop].range.begin(); iterRect != dvppCropIn_->v_location[indexCrop].range.end(); ++iterRect) {
-                    orderInFrame_++;
-                    if (HIAI_OK != UpdateCropPara(*iterRect) || HIAI_OK != HandlePng((*iter).img)) {
-                        HIAI_ENGINE_LOG(HIAI_IDE_WARNING, "[ImagePreProcessEngine]Handle One Image Error, Continue Next");
-                        continue;
-                    }
-                }
-            } else {
-                if (HIAI_OK != HandlePng((*iter).img)) {
-                    HIAI_ENGINE_LOG(HIAI_IDE_WARNING, "[ImagePreProcessEngine]Handle One Image Error, Continue Next");
-                    continue;
-                }
-            }
-        } else { // default IMAGE_TYPE_NV12
-            if (NULL != dvppCropIn_ && NULL != dvppCropIn_.get()) {
-                if(dvppCropIn_->v_location.empty() || dvppCropIn_->v_location[indexCrop].range.empty()) {
-                    continue;
-                }
-                for (std::vector<Rectangle<Point2D>>::iterator iterRect = dvppCropIn_->v_location[indexCrop].range.begin(); iterRect != dvppCropIn_->v_location[indexCrop].range.end(); ++iterRect) {
-                    orderInFrame_++;
-                    if (HIAI_OK != UpdateCropPara(*iterRect) || HIAI_OK != HandleVpc((*iter).img)) {
-                        HIAI_ENGINE_LOG(HIAI_IDE_WARNING, "[ImagePreProcessEngine]Handle One Image Error, Continue Next");
-                        continue;
-                    }
-                }
-            } else {
-                if (HIAI_OK != HandleVpc((*iter).img)) {
-                     HIAI_ENGINE_LOG(HIAI_IDE_WARNING, "[ImagePreProcessEngine]Handle One Image Error, Continue Next");
-                        continue;
                 }
             }
         }
@@ -733,18 +516,11 @@ HIAI_IMPL_ENGINE_PROCESS("ImagePreProcessEngine", ImagePreProcessEngine, INPUT_S
             inputQue_.PushData(0, arg0);
         }
     }
-#if INPUT_SIZE == 2
-    inputQue_.PushData(1, arg1);
-    if (!inputQue_.PopAllData(dvppIn_, dvppCropIn_)) {
-        HIAI_ENGINE_LOG(HIAI_IDE_WARNING, "[ImagePreProcessEngine]fail to pop all data");
-        return HIAI_ERROR;
-    }
-#else
     if (!inputQue_.PopAllData(dvppIn_)) {
         HIAI_ENGINE_LOG(HIAI_IDE_WARNING, "[ImagePreProcessEngine]fail to pop all data");
         return HIAI_ERROR;
     }
-#endif
+
     //add sentinel image for showing this data in dataset are all sended, this is last step.
     if (isSentinelImage(dvppIn_)) {
         HIAI_ENGINE_LOG(HIAI_IDE_INFO, "[ImagePreProcessEngine]sentinel Image, process over.");

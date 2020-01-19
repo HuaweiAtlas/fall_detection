@@ -142,13 +142,10 @@ private:
     bool NeedCrop();
     void ClearData();
     int HandleJpeg(const ImageData<u_int8_t> &img);
-    int HandlePng(const ImageData<u_int8_t> &img);
-    int HandleVpc(const ImageData<u_int8_t> &img);
     int HandleVpcWithParam(const unsigned char* buffer, const int &width, const int &height, const long &bufferSize,
         const ImageData<u_int8_t> &img, const FILE_TYPE &type, const int &format);
     bool ProcessCrop(VpcUserCropConfigure &area, const int &width, const int &height, const int &realWidth, const int &realHeight);
     bool SendPreProcessData();
-    int StorePreprocessImage(const u_int8_t *outBuffer, const uint32_t &size, const DvppPreprocessInfo &info);
     int HandleDvpp();
     int UpdateCropPara(const Rectangle<Point2D> &rect);
 

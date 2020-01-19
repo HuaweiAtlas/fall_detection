@@ -31,16 +31,6 @@ const static int32_t BLANK_SET_NUMBER = 0;
 const static std::string DYNAMIC_AIPP = "1";
 const static std::string STATIC_AIPP = "0";
 const static std::string MODEL_AIPP_TYPE_NOT_SET = "-1";
-const static std::string INPUT_IMAGE_FORMAT_YUV420SP_U8 = "YUV420SP_U8";
-const static std::string INPUT_IMAGE_FORMAT_XRGB8888_U8 = "XRGB8888_U8";
-const static std::string INPUT_IMAGE_FORMAT_RGB888_U8 = "RGB888_U8";
-const static std::string INPUT_IMAGE_FORMAT_YUV400_U8 = "YUV400_U8";
-const static std::string MODEL_IMAGE_FORMAT_YUV444SP_U8 = "YUV444SP_U8";
-const static std::string MODEL_IMAGE_FORMAT_YVU444SP_U8 = "YVU444SP_U8";
-const static std::string MODEL_IMAGE_FORMAT_RGB888_U8 = "RGB888_U8";
-const static std::string MODEL_IMAGE_FORMAT_BGR888_U8 = "BGR888_U8";
-const static std::string MODEL_IMAGE_FORMAT_GRAY = "GRAY";
-const static std::string CSC_SWITCH_ON = "1";
 const static uint32_t INPUT_EDGE_INDEX_0 = 0;
 const static uint32_t INPUT_INDEX_0 = 0;
 
@@ -76,7 +66,6 @@ HIAI_StatusT OpenPoseInferenceEngine::Init(const hiai::AIConfig& config,
 
     std::vector<hiai::AIModelDescription> model_desc_vec;
     hiai::AIModelDescription model_desc_;
-    dynamic_aipp_flag = false;
     for (int index = 0; index < config.items_size(); ++index)
     {
         const ::hiai::AIConfigItem& item = config.items(index);
@@ -97,56 +86,6 @@ HIAI_StatusT OpenPoseInferenceEngine::Init(const hiai::AIConfig& config,
         } else if (item.name() == "passcode") {
             std::string passcode = item.value();
             model_desc_.set_key(passcode);
-        } else if (item.name() == "dynamic_aipp_flag") {
-            if (item.value() == MODEL_AIPP_TYPE_NOT_SET) {
-                dynamic_aipp_flag = false;
-                for (int i = 0; i < config.items_size(); ++i) {
-                    const ::hiai::AIConfigItem& innerItem = config.items(i);
-                    if (innerItem.name() == "dynamic_aipp" && innerItem.value() == DYNAMIC_AIPP) {
-                        dynamic_aipp_flag = true;
-                        break;
-                    }
-                }
-            } else if (item.value() == STATIC_AIPP) {
-                dynamic_aipp_flag = false;
-            } else if (item.value() == DYNAMIC_AIPP) {
-                dynamic_aipp_flag = true;
-            } else {
-                HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[OpenPoseInferenceEngine] wrong dynamic_aipp_flag value");
-                return HIAI_ERROR;
-            }
-        } else if (item.name() == "input_image_format") {
-            if (item.value() == INPUT_IMAGE_FORMAT_YUV420SP_U8) {
-                input_image_format = hiai::YUV420SP_U8;
-            } else if (item.value() == INPUT_IMAGE_FORMAT_XRGB8888_U8) {
-                input_image_format = hiai::XRGB8888_U8;
-            } else if (item.value() == INPUT_IMAGE_FORMAT_RGB888_U8) {
-                input_image_format = hiai::RGB888_U8;
-            } else if (item.value() == INPUT_IMAGE_FORMAT_YUV400_U8) {
-                input_image_format = hiai::YUV400_U8;
-            } else {
-                input_image_format = hiai::YUV420SP_U8;
-            }
-        } else if (item.name() == "csc_switch") {
-            if (item.value() == CSC_SWITCH_ON) {
-                csc_switch = true;
-            } else {
-                csc_switch = false;
-            }
-        } else if (item.name() == "model_image_format") {
-            if (item.value() == MODEL_IMAGE_FORMAT_YUV444SP_U8) {
-                model_image_format = hiai::MODEL_YUV444SP_U8;
-            } else if (item.value() == MODEL_IMAGE_FORMAT_YVU444SP_U8) {
-                model_image_format = hiai::MODEL_YVU444SP_U8;
-            } else if (item.value() == MODEL_IMAGE_FORMAT_RGB888_U8) {
-                model_image_format = hiai::MODEL_RGB888_U8;
-            } else if (item.value() == MODEL_IMAGE_FORMAT_BGR888_U8) {
-                model_image_format = hiai::MODEL_BGR888_U8;
-            } else if (item.value() == MODEL_IMAGE_FORMAT_GRAY) {
-                model_image_format = hiai::MODEL_GRAY;
-            } else {
-                model_image_format = hiai::MODEL_BGR888_U8;
-            }
         } else if (item.name() == "input_image_width") {
             if (item.value() == "") {
                 input_image_width = BLANK_SET_NUMBER;
@@ -271,40 +210,6 @@ HIAI_StatusT OpenPoseInferenceEngine::PrepareInputBuffer(uint8_t *input_buffer,c
 }
 
 /**
-* @brief: prepare the data buffer for image information
-* @in: input_buffer2: buffer pointer
-* @in: image_number: total number of received images
-* @in: batch_begin: the index of the first image of each batch
-* @in: multi_input_2: the second input received from the previous engine
-* @return: HIAI_StatusT
-*/
-HIAI_StatusT OpenPoseInferenceEngine::PrepareInforInput(uint8_t *input_buffer2,const int image_number, const int batch_begin, std::shared_ptr<hiai::BatchRawDataBuffer> multi_input_2) {
-    int each_size;
-    //the loop for each info
-    for (int j = 0; j < int(batch_size); j++) {
-        if (batch_begin + j < image_number) {
-            hiai::RawDataBuffer _input_arg_2 = multi_input_2->v_info[batch_begin + j];
-            each_size = _input_arg_2.len_of_byte;
-            HIAI_ENGINE_LOG(HIAI_IDE_INFO, "[OpenPoseInferenceEngine] info each input size: %d", each_size);
-            if (memcpy_s(input_buffer2 + j*each_size, each_size, _input_arg_2.data.get(), each_size)) {
-                HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[OpenPoseInferenceEngine] ERROR, copy info buffer failed");
-                return HIAI_ERROR;
-            }
-        }
-        else {
-            float info_tmp[3] = { 0.0, 0.0, 0.0 };
-            each_size = sizeof(info_tmp);
-            HIAI_ENGINE_LOG(HIAI_IDE_INFO, "[OpenPoseInferenceEngine] info padding size: %d", each_size);
-            if (memcpy_s(input_buffer2 + j*each_size, each_size, info_tmp, each_size)) {
-                HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[OpenPoseInferenceEngine] ERROR, padding info buffer failed");
-                return HIAI_ERROR;
-            }
-        }
-    }
-    return HIAI_OK;
-}
-
-/**
 * @brief: call ai model manager to do the prediction
 * @return: HIAI_StatusT
 */
@@ -339,87 +244,10 @@ HIAI_StatusT OpenPoseInferenceEngine::Predict() {
     }
 
     HIAI_StatusT ret = HIAI_OK;
-    // dynamic aipp settings
-    if (dynamic_aipp_flag) {
-        stringstream ss;
-        ss << batch_size;
-        string batch_size_string = ss.str();
-        hiai::AITensorDescription dynamic_param =  hiai::AippDynamicParaTensor::GetDescription(batch_size_string);
-        shared_ptr<hiai::IAITensor> tmp_tensor = hiai::AITensorFactory::GetInstance()->CreateTensor(dynamic_param);
-        shared_ptr<hiai::AippDynamicParaTensor> dynamic_param_tensor = std::static_pointer_cast<hiai::AippDynamicParaTensor>(tmp_tensor);
-
-        // if there are multiple input, we can set multiple input or input edge, default 0
-        dynamic_param_tensor->SetDynamicInputEdgeIndex(INPUT_EDGE_INDEX_0);
-        dynamic_param_tensor->SetDynamicInputIndex(INPUT_INDEX_0);
-
-        // set input format
-        dynamic_param_tensor->SetInputFormat(input_image_format);
-
-        //set csc params if csc switch is true
-        if (csc_switch) {
-            dynamic_param_tensor->SetCscParams(input_image_format, model_image_format, hiai::JPEG);
-        }
-
-        //If use image preprocess, set src image size
-        if (input_image_width > BLANK_SET_NUMBER && input_image_height > BLANK_SET_NUMBER) {
-            dynamic_param_tensor->SetSrcImageSize(input_image_width, input_image_height);
-        }
-
-        //Every image of a batch can set these properties below independently
-        for (int batch_index = 0; batch_index < int(batch_size); batch_index++) {
-            //set default crop, we can set it customize
-            if (crop_width > BLANK_SET_NUMBER && crop_height > BLANK_SET_NUMBER) {
-                dynamic_param_tensor->SetCropParams(true,
-                                                    CROP_START_LOCATION,
-                                                    CROP_START_LOCATION,
-                                                    crop_width,
-                                                    crop_height,
-                                                    batch_index);
-            }
-
-            //set default mean value, we can set it customize
-            dynamic_param_tensor->SetDtcPixelMin(DEFAULT_MEAN_VALUE_CHANNEL_0,
-                                                 DEFAULT_MEAN_VALUE_CHANNEL_1,
-                                                 DEFAULT_MEAN_VALUE_CHANNEL_2,
-                                                 DEFAULT_MEAN_VALUE_CHANNEL_3,
-                                                 batch_index);
-
-            //set default dtcPixelVarReci value, we can set it customize
-            dynamic_param_tensor->SetPixelVarReci(DEFAULT_RECI_VALUE,
-                                                  DEFAULT_RECI_VALUE,
-                                                  DEFAULT_RECI_VALUE,
-                                                  DEFAULT_RECI_VALUE,
-                                                  batch_index);
-
-            // we can set padding customize use this function below if necessary
-            // AIStatus AippDynamicParaTensor::SetPaddingParams(bool paddingSwitch, int32_t paddingSizeTop,  int32_t paddingSizeBottom, int32_t paddingSizeLeft, int32_t paddingSizeRight,  uint32_t batchIndex)
-
-            // we can set rotation customize use this function below if necessary
-            // AIStatus AippDynamicParaTensor::SetRotation(int8_t rotateSwitch, uint32_t batchIndex)
-        }
-
-        ret = ai_model_manager_->SetInputDynamicAIPP(input_data_vec, dynamic_param_tensor);
-        if (ret != hiai::SUCCESS)    {
-            HIAI_ENGINE_LOG(this, HIAI_IDE_ERROR, "hiai set input dynamic aipp fail");
-            return HIAI_ERROR;
-        }
-    }
-
+    
     hiai::AIContext ai_context;
     HIAI_ENGINE_LOG(HIAI_IDE_INFO, "[OpenPoseInferenceEngine] ai_model_manager_->Process start!");
-
-    // struct timeval start;
-    // struct timeval stop;
-    // memset(&start, 0, sizeof(start));
-    // memset(&stop, 0, sizeof(stop));
-    // gettimeofday(&start, NULL);
-
     ret = ai_model_manager_->Process(ai_context, input_data_vec, output_data_vec, 0);
-
-    // gettimeofday(&stop, NULL);
-    // double time_used = (stop.tv_sec - start.tv_sec) *1000+(stop.tv_usec - start.tv_usec) / 1000.0;
-    // cout << "end,Inference process time use is:" << time_used << endl;
-
     if (hiai::SUCCESS != ret)
     {
         ClearOutData();

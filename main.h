@@ -12,7 +12,6 @@
 #include <hiaiengine/api.h>
 #include <hiaiengine/graph.h>
 #include <string>
-#include "BatchImageParaWithScale.h"
 class CustomDataRecvInterface : public hiai::DataRecvInterface
 {
  public:

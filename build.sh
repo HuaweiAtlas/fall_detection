@@ -34,4 +34,4 @@ fi
 
 echo "============ build success ! ============"
 
-scp -r out/ HwHiAiUser@172.16.117.103:/home/HwHiAiUser/HIAI_PROJECTS/ascend_workspace/robot_dog/
+scp -r out/ HwHiAiUser@172.16.117.104:~/HIAI_PROJECTS/workspace_mind_studio/robot_dog

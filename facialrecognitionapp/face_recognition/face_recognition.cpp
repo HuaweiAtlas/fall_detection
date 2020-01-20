@@ -568,15 +568,15 @@ bool FaceRecognition::GetOriginPic(
 void FaceRecognition::SendResult(
     const shared_ptr<FaceRecognitionInfo> &image_handle) {
   HIAI_StatusT hiai_ret;
-  if(!GetOriginPic(image_handle)){
-    image_handle->err_info.err_code = AppErrorCode::kRecognition;
-    image_handle->err_info.err_msg = "Get the original pic failed";
+  // if(!GetOriginPic(image_handle)){
+  //   image_handle->err_info.err_code = AppErrorCode::kRecognition;
+  //   image_handle->err_info.err_msg = "Get the original pic failed";
 
-    HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-                    "Engine handle filed, err_code=%d, err_msg=%s",
-                    image_handle->err_info.err_code,
-                    image_handle->err_info.err_msg.c_str());
-  }
+  //   HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
+  //                   "Engine handle filed, err_code=%d, err_msg=%s",
+  //                   image_handle->err_info.err_code,
+  //                   image_handle->err_info.err_msg.c_str());
+  // }
   // when register face, can not discard when queue full
   do {
     hiai_ret = SendData(0, "FaceRecognitionInfo",
@@ -609,18 +609,18 @@ HIAI_StatusT FaceRecognition::Recognition(
   }
 
   // pre-process
-  vector<AlignedFace> aligned_imgs;
-  PreProcess(image_handle->face_imgs, aligned_imgs);
+  // vector<AlignedFace> aligned_imgs;
+  // PreProcess(image_handle->face_imgs, aligned_imgs);
 
   // need to inference or not
-  if (aligned_imgs.empty()) {
-    HIAI_ENGINE_LOG("no need to inference any image.");
-    SendResult(image_handle);
-    return HIAI_OK;
-  }
+  // if (aligned_imgs.empty()) {
+  //   HIAI_ENGINE_LOG("no need to inference any image.");
+  //   SendResult(image_handle);
+  //   return HIAI_OK;
+  // }
 
   // inference and set results
-  InferenceFeatureVector(aligned_imgs, image_handle->face_imgs);
+  // InferenceFeatureVector(aligned_imgs, image_handle->face_imgs);
 
   // send result
   SendResult(image_handle);

@@ -553,39 +553,39 @@ HIAI_IMPL_ENGINE_PROCESS("face_feature_mask", FaceFeatureMaskProcess, INPUT_SIZE
     return HIAI_ERROR;
   }
 
-  if (face_recognition_info->face_imgs.size() == 0) {
-    HIAI_ENGINE_LOG("No face image need to be handled.");
-    return SendSuccess(face_recognition_info);
-  }
+  // if (face_recognition_info->face_imgs.size() == 0) {
+  //   HIAI_ENGINE_LOG("No face image need to be handled.");
+  //   return SendSuccess(face_recognition_info);
+  // }
 
-  if (!Crop(face_recognition_info, face_recognition_info->org_img, face_recognition_info->face_imgs)) {
-    return SendFailed("Crop all the data failed, all the data failed",
-                      face_recognition_info);
-  }
+  // if (!Crop(face_recognition_info, face_recognition_info->org_img, face_recognition_info->face_imgs)) {
+  //   return SendFailed("Crop all the data failed, all the data failed",
+  //                     face_recognition_info);
+  // }
 
-  vector<ImageData<u_int8_t>> resized_imgs;
-  if (!Resize(face_recognition_info->face_imgs, resized_imgs)) {
-    return SendFailed("Resize all the data failed, all the data failed",
-                      face_recognition_info);
-  }
+  // vector<ImageData<u_int8_t>> resized_imgs;
+  // if (!Resize(face_recognition_info->face_imgs, resized_imgs)) {
+  //   return SendFailed("Resize all the data failed, all the data failed",
+  //                     face_recognition_info);
+  // }
 
-  vector<Mat> bgr_imgs;
-  if (!ImageYUV2BGR(resized_imgs, bgr_imgs)) {
-    return SendFailed("Convert all the data failed, all the data failed",
-                      face_recognition_info);
-  }
+  // vector<Mat> bgr_imgs;
+  // if (!ImageYUV2BGR(resized_imgs, bgr_imgs)) {
+  //   return SendFailed("Convert all the data failed, all the data failed",
+  //                     face_recognition_info);
+  // }
 
-  if (!NormalizeData(bgr_imgs)) {
-    return SendFailed("Normalize all the data failed, all the data failed",
-                      face_recognition_info);
-  }
+  // if (!NormalizeData(bgr_imgs)) {
+  //   return SendFailed("Normalize all the data failed, all the data failed",
+  //                     face_recognition_info);
+  // }
 
-  // Inference the data
-  bool inference_flag = Inference(bgr_imgs, face_recognition_info->face_imgs);
-  if (!inference_flag) {
-    return SendFailed("Inference the data failed",
-                      face_recognition_info);
-  }
+  // // Inference the data
+  // bool inference_flag = Inference(bgr_imgs, face_recognition_info->face_imgs);
+  // if (!inference_flag) {
+  //   return SendFailed("Inference the data failed",
+  //                     face_recognition_info);
+  // }
 
   return SendSuccess(face_recognition_info);
 }

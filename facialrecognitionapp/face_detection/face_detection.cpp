@@ -49,9 +49,9 @@ namespace {
 // output port (engine port begin with 0)
 const uint32_t kSendDataPort = 0;
 
-// model need resized image to 300 * 300
-const float kResizeWidth = 300.0;
-const float kResizeHeight = 300.0;
+// model need resized image to 384 * 288
+const float kResizeWidth = 384.0;
+const float kResizeHeight = 288.0;
 
 // confidence parameter key in graph.confi
 const string kConfidenceParamKey = "confidence";
@@ -281,61 +281,80 @@ bool FaceDetection::Inference(
 bool FaceDetection::PostProcess(
   shared_ptr<FaceRecognitionInfo> &image_handle,
   const vector<shared_ptr<hiai::IAITensor>> &output_data_vec) {
+  if (image_handle->output_data_vec.empty()) {
+    for (unsigned int i = 0; i < output_data_vec.size(); i++) {
+      OutputT out;
+      std::shared_ptr<hiai::AINeuralNetworkBuffer> result_tensor = std::static_pointer_cast<hiai::AINeuralNetworkBuffer>(output_data_vec[i]);
+      int buffer_size = result_tensor->GetSize();
+      out.name = result_tensor->GetName();
+      out.size = buffer_size;
+      if(out.size <= 0){
+        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[OpenPoseInferenceEngine] out.size <= 0");
+        return HIAI_ERROR;
+      }
+
+      shared_ptr<u_int8_t> input_data(new u_int8_t[buffer_size]);
+      memcpy_s(input_data.get(), buffer_size, out.data.get(), buffer_size);
+      out.data = input_data;
+      image_handle->output_data_vec.push_back(out);
+    }
+  }
+  
   // inference result vector only need get first result
   // because batch is fixed as 1
-  shared_ptr<hiai::AISimpleTensor> result_tensor = static_pointer_cast <
-      hiai::AISimpleTensor > (output_data_vec[kResultIndex]);
+  // shared_ptr<hiai::AISimpleTensor> result_tensor = static_pointer_cast <
+  //     hiai::AISimpleTensor > (output_data_vec[kResultIndex]);
 
-  // copy data to float array
-  int32_t size = result_tensor->GetSize() / sizeof(float);
-  if(size <= 0){
-    HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-                    "the result tensor's size is not correct, size is %d", size);
-    return false;
-  }
-  float result[size];
-  errno_t mem_ret = memcpy_s(result, sizeof(result), result_tensor->GetBuffer(),
-                             result_tensor->GetSize());
-  if (mem_ret != EOK) {
-    HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-                    "post process call memcpy_s() error=%d", mem_ret);
-    return false;
-  }
+  // // copy data to float array
+  // int32_t size = result_tensor->GetSize() / sizeof(float);
+  // if(size <= 0){
+  //   HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
+  //                   "the result tensor's size is not correct, size is %d", size);
+  //   return false;
+  // }
+  // float result[size];
+  // errno_t mem_ret = memcpy_s(result, sizeof(result), result_tensor->GetBuffer(),
+  //                            result_tensor->GetSize());
+  // if (mem_ret != EOK) {
+  //   HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
+  //                   "post process call memcpy_s() error=%d", mem_ret);
+  //   return false;
+  // }
 
-  uint32_t width = image_handle->org_img.width;
-  uint32_t height = image_handle->org_img.height;
+  // uint32_t width = image_handle->org_img.width;
+  // uint32_t height = image_handle->org_img.height;
 
-  // every inference result needs 8 float
-  // loop the result for every result
-  float *ptr = result;
-  for (int32_t i = 0; i < size - kEachResultSize; i += kEachResultSize) {
-    ptr = result + i;
-    // attribute
-    float attr = ptr[kAttributeIndex];
-    // confidence
-    float score = ptr[kScoreIndex];
+  // // every inference result needs 8 float
+  // // loop the result for every result
+  // float *ptr = result;
+  // for (int32_t i = 0; i < size - kEachResultSize; i += kEachResultSize) {
+  //   ptr = result + i;
+  //   // attribute
+  //   float attr = ptr[kAttributeIndex];
+  //   // confidence
+  //   float score = ptr[kScoreIndex];
 
-    // position
-    FaceRectangle rectangle;
-    rectangle.lt.x = CorrectionRatio(ptr[kLeftTopXaxisIndex]) * width;
-    rectangle.lt.y = CorrectionRatio(ptr[kLeftTopYaxisIndex]) * height;
-    rectangle.rb.x = CorrectionRatio(ptr[kRightBottomXaxisIndex]) * width;
-    rectangle.rb.y = CorrectionRatio(ptr[kRightBottomYaxisIndex]) * height;
+  //   // position
+  //   FaceRectangle rectangle;
+  //   rectangle.lt.x = CorrectionRatio(ptr[kLeftTopXaxisIndex]) * width;
+  //   rectangle.lt.y = CorrectionRatio(ptr[kLeftTopYaxisIndex]) * height;
+  //   rectangle.rb.x = CorrectionRatio(ptr[kRightBottomXaxisIndex]) * width;
+  //   rectangle.rb.y = CorrectionRatio(ptr[kRightBottomYaxisIndex]) * height;
 
-    // check results is invalid, skip it
-    if (!IsValidResults(attr, score, rectangle)) {
-      continue;
-    }
+  //   // check results is invalid, skip it
+  //   if (!IsValidResults(attr, score, rectangle)) {
+  //     continue;
+  //   }
 
-    HIAI_ENGINE_LOG("attr=%f, score=%f, lt.x=%d, lt.y=%d, rb.x=%d, rb.y=%d",
-                    attr, score, rectangle.lt.x, rectangle.lt.y, rectangle.rb.x,
-                    rectangle.rb.y);
+  //   HIAI_ENGINE_LOG("attr=%f, score=%f, lt.x=%d, lt.y=%d, rb.x=%d, rb.y=%d",
+  //                   attr, score, rectangle.lt.x, rectangle.lt.y, rectangle.rb.x,
+  //                   rectangle.rb.y);
 
-    // push back to image_handle
-    FaceImage faceImage;
-    faceImage.rectangle = rectangle;
-    image_handle->face_imgs.emplace_back(faceImage);
-  }
+  //   // push back to image_handle
+  //   FaceImage faceImage;
+  //   faceImage.rectangle = rectangle;
+  //   image_handle->face_imgs.emplace_back(faceImage);
+  // }
   return true;
 }
 

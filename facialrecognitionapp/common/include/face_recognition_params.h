@@ -36,7 +36,7 @@
 
 #include "hiaiengine/data_type.h"
 #include "ascenddk/ascend_ezdvpp/dvpp_data_type.h"
-
+#include "BatchImageParaWithScale.h"
 #define CHECK_MEM_OPERATOR_RESULTS(ret) \
 if (ret != EOK) { \
   HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT, \
@@ -185,6 +185,7 @@ struct FaceRecognitionInfo {
   ErrorInfo err_info;  // error information
   hiai::ImageData<u_int8_t> org_img;  // original image
   std::vector<FaceImage> face_imgs;  // cropped image
+  std::vector<OutputT> output_data_vec;
 };
 
 /**

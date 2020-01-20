@@ -156,8 +156,8 @@ HIAI_StatusT FacePostProcess::ReplyFeature(
 
   // 2. dealing success, need set FaceFeature
   result.mutable_response()->set_ret(facial_recognition::kErrorNone);
-  vector<FaceImage> face_imgs = info->face_imgs;
-  int info_size = face_imgs.size();
+  // vector<FaceImage> face_imgs = info->face_imgs;
+  int info_size = info->output_data_vec.size();
   facial_recognition::FaceFeature *face_feature = nullptr;
   for (int i = 0; i < 1; i++) {
     // every face feature

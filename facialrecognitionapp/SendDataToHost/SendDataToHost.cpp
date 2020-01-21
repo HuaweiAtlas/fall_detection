@@ -98,6 +98,10 @@ HIAI_StatusT SendDataToHost::SendFeature(
       string(reinterpret_cast<char*>(info->frame.original_jpeg_pic_buffer), info->frame.original_jpeg_pic_size));
   delete info->frame.original_jpeg_pic_buffer;
 
+  // OutputT out = info->output_data_vec[0];
+  // OutputT out1 = info->output_data_vec[1];
+  // HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "camera: heatmap size is %d", out.size);
+  // HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "camera: pafmap size is %d", out1.size);
   // 2. repeated FaceFeature
   vector<FaceImage> face_imgs = info->face_imgs;
   facial_recognition::FaceFeature *feature = nullptr;
@@ -184,7 +188,7 @@ HIAI_StatusT SendDataToHost::ReplyFeature(
 }
 
 HIAI_IMPL_ENGINE_PROCESS("SendDataToHost", SendDataToHost, INPUT_SIZE) {
-  HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "Senddatatohost start");
+  // HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "Senddatatohost start");
   
   // deal arg0 (engine only have one input)
   if (arg0 != nullptr) {

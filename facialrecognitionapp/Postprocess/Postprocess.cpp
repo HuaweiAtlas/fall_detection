@@ -672,6 +672,16 @@ HIAI_IMPL_ENGINE_PROCESS("Postprocess", Postprocess, INPUT_SIZE) {
     HIAI_ENGINE_LOG("begin to deal face_recognition!");
     shared_ptr<FaceRecognitionInfo> image_handle = static_pointer_cast<
         FaceRecognitionInfo>(arg0);
+
+    // deal data from camera
+    if (image_handle->frame.image_source == 0) {
+      HIAI_ENGINE_LOG("post process dealing data from camera.");
+      SendResult(image_handle);
+      return HIAI_OK;
+    }
+
+    // deal data from register
+    HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "post process dealing data from register.");
     ret = Recognition(image_handle);
   }
 //   HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "postprocess start ");

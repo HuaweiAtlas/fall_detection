@@ -1542,3 +1542,13 @@
 2020-01-21 10:16:48,883-INFO-channel_manager.py:127 create channel resource, channel_name:video, channel_fd:11, media_type:video
 2020-01-21 10:17:11,646-INFO-facial_recognition_server.py:670 Register face dafzvc succeed
 2020-01-21 10:17:11,646-INFO-web.py:193 Register face success
+2020-01-21 10:44:53,731-INFO-app_manager.py:85 create app manager thread
+2020-01-21 10:44:53,731-INFO-presenter_server.py:79 presenter server starting, type: facial_recognition
+2020-01-21 10:45:01,545-INFO-presenter_socket_server.py:255 create new connection:client-ip:172.16.117.104, client-port:51578, fd:10
+2020-01-21 10:45:01,546-INFO-channel_manager.py:216 register channel: video
+2020-01-21 10:45:01,547-INFO-app_manager.py:115 register app: video
+2020-01-21 10:45:03,464-INFO-presenter_socket_server.py:255 create new connection:client-ip:172.16.117.104, client-port:51588, fd:11
+2020-01-21 10:45:03,465-INFO-facial_recognition_handler.py:120 create videothread-video...
+2020-01-21 10:45:03,465-INFO-channel_manager.py:127 create channel resource, channel_name:video, channel_fd:11, media_type:video
+2020-01-21 10:45:31,097-INFO-facial_recognition_server.py:670 Register face bhodghdog succeed
+2020-01-21 10:45:31,097-INFO-web.py:193 Register face success

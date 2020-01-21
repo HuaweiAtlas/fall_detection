@@ -286,6 +286,9 @@ bool OpenposeInference::PostProcess(
       OutputT out;
       std::shared_ptr<hiai::AINeuralNetworkBuffer> result_tensor = std::static_pointer_cast<hiai::AINeuralNetworkBuffer>(output_data_vec[i]);
       int buffer_size = result_tensor->GetSize();
+      if (image_handle->frame.image_source == 1) {
+        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "inference: out size is %d", buffer_size);
+      }
       out.name = result_tensor->GetName();
       out.size = buffer_size;
       if(out.size <= 0){
@@ -299,62 +302,6 @@ bool OpenposeInference::PostProcess(
       image_handle->output_data_vec.push_back(out);
     }
   }
-  
-  // inference result vector only need get first result
-  // because batch is fixed as 1
-  // shared_ptr<hiai::AISimpleTensor> result_tensor = static_pointer_cast <
-  //     hiai::AISimpleTensor > (output_data_vec[kResultIndex]);
-
-  // // copy data to float array
-  // int32_t size = result_tensor->GetSize() / sizeof(float);
-  // if(size <= 0){
-  //   HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-  //                   "the result tensor's size is not correct, size is %d", size);
-  //   return false;
-  // }
-  // float result[size];
-  // errno_t mem_ret = memcpy_s(result, sizeof(result), result_tensor->GetBuffer(),
-  //                            result_tensor->GetSize());
-  // if (mem_ret != EOK) {
-  //   HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-  //                   "post process call memcpy_s() error=%d", mem_ret);
-  //   return false;
-  // }
-
-  // uint32_t width = image_handle->org_img.width;
-  // uint32_t height = image_handle->org_img.height;
-
-  // // every inference result needs 8 float
-  // // loop the result for every result
-  // float *ptr = result;
-  // for (int32_t i = 0; i < size - kEachResultSize; i += kEachResultSize) {
-  //   ptr = result + i;
-  //   // attribute
-  //   float attr = ptr[kAttributeIndex];
-  //   // confidence
-  //   float score = ptr[kScoreIndex];
-
-  //   // position
-  //   FaceRectangle rectangle;
-  //   rectangle.lt.x = CorrectionRatio(ptr[kLeftTopXaxisIndex]) * width;
-  //   rectangle.lt.y = CorrectionRatio(ptr[kLeftTopYaxisIndex]) * height;
-  //   rectangle.rb.x = CorrectionRatio(ptr[kRightBottomXaxisIndex]) * width;
-  //   rectangle.rb.y = CorrectionRatio(ptr[kRightBottomYaxisIndex]) * height;
-
-  //   // check results is invalid, skip it
-  //   if (!IsValidResults(attr, score, rectangle)) {
-  //     continue;
-  //   }
-
-  //   HIAI_ENGINE_LOG("attr=%f, score=%f, lt.x=%d, lt.y=%d, rb.x=%d, rb.y=%d",
-  //                   attr, score, rectangle.lt.x, rectangle.lt.y, rectangle.rb.x,
-  //                   rectangle.rb.y);
-
-  //   // push back to image_handle
-  //   FaceImage faceImage;
-  //   faceImage.rectangle = rectangle;
-  //   image_handle->face_imgs.emplace_back(faceImage);
-  // }
   return true;
 }
 
@@ -374,9 +321,50 @@ void OpenposeInference::HandleErrors(
 
 void OpenposeInference::SendResult(
   const shared_ptr<FaceRecognitionInfo> &image_handle) {
-
+  
   // when register face, can not discard when queue full
   HIAI_StatusT hiai_ret;
+  // for(int i = 0; i < 4; i++){
+  //   std::shared_ptr<FaceRecognitionInfo> image_handle1 = std::make_shared<FaceRecognitionInfo>();
+  //   image_handle1->frame = image_handle->frame;
+  //   image_handle1->err_info = image_handle->err_info;
+  //   image_handle1->org_img = image_handle->org_img;
+  //   image_handle1->face_imgs = image_handle->face_imgs;
+    
+  //   OutputT heatmap = image_handle->output_data_vec[0];
+  //   image_handle1->output_data_vec.push_back(heatmap);
+  //   OutputT pafmap = image_handle->output_data_vec[1];
+  //   int buffer_size;
+  //   if(i == 3){
+  //     buffer_size = pafmap.size*5/26;
+  //   }else{
+  //     buffer_size = pafmap.size*7/26;
+  //   }
+  //       // shared_ptr<u_int8_t> send_data(new u_int8_t[buffer_size]);
+  //       // memcpy_s(resized_data.get(), buffer_size, resizePafMat.data, buffer_size);
+  //   shared_ptr<u_int8_t> send_data(new u_int8_t[buffer_size]);
+  //   if(i == 3){
+  //     memcpy_s(send_data.get(), buffer_size, pafmap.data.get() + pafmap.size*21/26, buffer_size);
+  //           // cout << "send:" << std::to_string(i) << ":"<<*((float*)send_data.get() + 5) << endl;
+  //   }else{
+  //     memcpy_s(send_data.get(), buffer_size, pafmap.data.get() + i * buffer_size, buffer_size);
+  //           // cout << "send:" << std::to_string(i) << ":"<<*((float*)send_data.get() + 7) << endl;
+  //   }
+  //   OutputT out;
+  //   out.size = buffer_size;
+  //   out.data = send_data;
+  //   out.name = "pafmaps";
+  //   image_handle1->output_data_vec.push_back(out);
+  //   image_handle1->msg = std::to_string(i);
+  //   hiai_ret = SendData(i, "FaceRecognitionInfo", std::static_pointer_cast<void>(image_handle1));
+  // }
+        
+  // if (HIAI_OK != hiai_ret)
+  // {
+  //   HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[OpenPoseInferenceEngine] SendData failed! error code: %d", hiai_ret);
+  // }
+
+
   do {
     hiai_ret = SendData(kSendDataPort, "FaceRecognitionInfo",
                         static_pointer_cast<void>(image_handle));

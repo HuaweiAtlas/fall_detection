@@ -157,21 +157,25 @@ HIAI_StatusT SendDataToHost::ReplyFeature(
   // 2. dealing success, need set FaceFeature
   result.mutable_response()->set_ret(facial_recognition::kErrorNone);
   // vector<FaceImage> face_imgs = info->face_imgs;
-  int info_size = info->output_data_vec.size();
+  // int info_size = info->output_data_vec.size();
+  OutputT out = info->output_data_vec[0];
+  HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "human size is %d", out.size);
+  vector<float> humans((float*)(out.data.get()), (float*)(out.data.get()) + out.size/sizeof(float));
   facial_recognition::FaceFeature *face_feature = nullptr;
   for (int i = 0; i < 1; i++) {
     // every face feature
     face_feature = result.add_feature();
 
     // box
-    face_feature->mutable_box()->set_lt_x(info_size);
-    face_feature->mutable_box()->set_lt_y(info_size);
-    face_feature->mutable_box()->set_rb_x(info_size);
-    face_feature->mutable_box()->set_rb_y(info_size);
+    face_feature->mutable_box()->set_lt_x(0);
+    face_feature->mutable_box()->set_lt_y(0);
+    face_feature->mutable_box()->set_rb_x(0);
+    face_feature->mutable_box()->set_rb_y(0);
 
     // vector
-    for (int j = 0; j < 5; j++) {
-      face_feature->add_vector(j);
+    for (int j = 0; j < humans.size(); j++) {
+      HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "value is %f", humans[j]);
+      face_feature->add_vector(humans[j]);
     }
   }
 
@@ -180,7 +184,8 @@ HIAI_StatusT SendDataToHost::ReplyFeature(
 }
 
 HIAI_IMPL_ENGINE_PROCESS("SendDataToHost", SendDataToHost, INPUT_SIZE) {
-
+  HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "Senddatatohost start");
+  
   // deal arg0 (engine only have one input)
   if (arg0 != nullptr) {
     shared_ptr<FaceRecognitionInfo> image_handle = static_pointer_cast<
@@ -193,9 +198,9 @@ HIAI_IMPL_ENGINE_PROCESS("SendDataToHost", SendDataToHost, INPUT_SIZE) {
     }
 
     // deal data from register
-    HIAI_ENGINE_LOG("post process dealing data from register.");
+    HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "post process dealing data from register.");
     return ReplyFeature(image_handle);
   }
-  HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT, "arg0 is null!");
+  HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "arg0 is null!");
   return HIAI_ERROR;
 }

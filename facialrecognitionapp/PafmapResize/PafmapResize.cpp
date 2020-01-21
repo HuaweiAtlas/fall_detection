@@ -48,6 +48,12 @@ using namespace std;
 using namespace hiai;
 using namespace cv;
 
+#define WSIZE 96
+#define HSIZE 72
+#define IMAGEW 384
+#define IMAGEH 288
+#define PAFMAP_SIZE 26
+
 namespace {
 // The image's width need to be resized
 const int32_t kResizedImgWidth = 40;
@@ -74,75 +80,9 @@ const int32_t kSendDataIntervalMiss = 20;
 */
 HIAI_StatusT PafmapResize::Init(const AIConfig &config,
     const vector<AIModelDescription> &model_desc) {
-  if (!InitAiModel(config)) {
-    return HIAI_ERROR;
-  }
 
-  if (!InitNormlizedData()) {
-    return HIAI_ERROR;
-  }
-
+  HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "robot_dog: ResizeEngine init");
   return HIAI_OK;
-}
-
-
-bool PafmapResize::InitAiModel(const AIConfig &config) {
-  AIStatus ret = SUCCESS;
-
-  // Define the initialization value for the ai_model_manager_
-  if (ai_model_manager_ == nullptr) {
-    ai_model_manager_ = make_shared<AIModelManager>();
-  }
-
-  vector<AIModelDescription> model_desc_vec;
-  AIModelDescription model_desc;
-
-  // Get the model information from the file graph.config
-  for (int index = 0; index < config.items_size(); ++index) {
-    const AIConfigItem &item = config.items(index);
-    if (item.name() == kModelPathParamKey) {
-      const char *model_path = item.value().data();
-      model_desc.set_path(model_path);
-    } else if (item.name() == kBatchSizeParamKey) {
-      stringstream ss(item.value());
-      ss >> batch_size_;
-    } else {
-      continue;
-    }
-  }
-
-  //Invoke the framework's interface to init the information
-  model_desc_vec.push_back(model_desc);
-  ret = ai_model_manager_->Init(config, model_desc_vec);
-
-  if (ret != SUCCESS) {
-    HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-                    "AI model init failed!");
-    return false;
-  }
-  return true;
-}
-
-bool PafmapResize::InitNormlizedData() {
-  // Load the mean data
-  Mat train_mean_value(kResizedImgWidth, kResizedImgHeight, CV_32FC3, (void *)kTrainMean);
-  train_mean_ = train_mean_value;
-  if (train_mean_.empty()) {
-    HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-                    "Load mean failed!");
-    return false;
-  }
-
-  // Load the STD data
-  Mat train_std_value(kResizedImgWidth, kResizedImgHeight, CV_32FC3, (void *)kTrainStd);
-  train_std_ = train_std_value;
-  if (train_std_.empty()) {
-    HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
-                    "Load std failed!");
-    return false;
-  }
-  HIAI_ENGINE_LOG("Load mean and std success!");
-  return true;
 }
 
 bool PafmapResize::IsDataHandleWrong(shared_ptr<FaceRecognitionInfo> &face_detail_info) {
@@ -155,9 +95,47 @@ bool PafmapResize::IsDataHandleWrong(shared_ptr<FaceRecognitionInfo> &face_detai
 
 HIAI_StatusT PafmapResize::SendSuccess(
   shared_ptr<FaceRecognitionInfo> &face_recognition_info) {
+  // HIAI_StatusT ret = HIAI_OK;
+  int scale = IMAGEW/WSIZE;
+  OutputT out = face_recognition_info->output_data_vec[1];
+  vector<Mat> pafmaps;
+    
+  shared_ptr<u_int8_t> input_data(new u_int8_t[out.size]);
+  memcpy_s(input_data.get(), out.size, out.data.get(), out.size);
+  int pafmapSize = 26;
+  // if (face_recognition_info->msg == "3"){
+  //   pafmapSize = 5;
+  // }else{
+  //   pafmapSize = 7;
+  // }
+    
+  for(int i = 0; i < pafmapSize; i++){
+    Mat v;
+    v.create(HSIZE, WSIZE, CV_32FC1);
+    v.data = input_data.get() + out.size*i/pafmapSize;
+    pafmaps.push_back(v);
+  }
+    // cout << pafmaps[5].at<float>(3,1) << endl;
+  Mat pafMats, resizePafMat;
+  merge(pafmaps, pafMats);
+  resize(pafMats, resizePafMat, Size(round(scale*WSIZE), round(scale*HSIZE)), 0, 0, INTER_CUBIC);
 
-  HIAI_ENGINE_LOG("VCNN network run success, the total face is %d .",
-                  face_recognition_info->face_imgs.size());
+  int buffer_size = scale*scale*out.size;
+  if (face_recognition_info->frame.image_source == 1) {
+    HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "resize: pafmap size after resize is %d", buffer_size);
+  }
+  
+  shared_ptr<u_int8_t> resized_data(new u_int8_t[buffer_size]);
+  memcpy_s(resized_data.get(), buffer_size, resizePafMat.data, buffer_size);
+  OutputT out1;
+  out1.size = buffer_size;
+  out1.data = resized_data;
+  out1.name = "resized";
+  face_recognition_info->output_data_vec[1] = out1;
+  // ret = SendData(0, "FaceRecognitionInfo", std::static_pointer_cast<void>(face_recognition_info));
+
+  // HIAI_ENGINE_LOG("VCNN network run success, the total face is %d .",
+  //                 face_recognition_info->face_imgs.size());
   HIAI_StatusT ret = HIAI_OK;
   do {
     ret = SendData(DEFAULT_DATA_PORT, "FaceRecognitionInfo",
@@ -190,6 +168,5 @@ HIAI_IMPL_ENGINE_PROCESS("PafmapResize", PafmapResize, INPUT_SIZE) {
              static_pointer_cast<void>(face_recognition_info));
     return HIAI_ERROR;
   }
-
   return SendSuccess(face_recognition_info);
 }

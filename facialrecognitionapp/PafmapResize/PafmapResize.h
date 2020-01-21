@@ -51,10 +51,15 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/imgproc.hpp"
 #include "opencv2/core/types_c.h"
+#include "opencv2/core.hpp"
 
-#define INPUT_SIZE 2
+#define INPUT_SIZE 1
 #define OUTPUT_SIZE 1
 #define DEFAULT_DATA_PORT 0
+using hiai::Engine;
+using namespace std;
+using namespace hiai;
+using namespace cv;
 
 class PafmapResize : public hiai::Engine {
  public:

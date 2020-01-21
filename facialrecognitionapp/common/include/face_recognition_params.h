@@ -186,6 +186,7 @@ struct FaceRecognitionInfo {
   hiai::ImageData<u_int8_t> org_img;  // original image
   std::vector<FaceImage> face_imgs;  // cropped image
   std::vector<OutputT> output_data_vec;
+  std::string msg;
 };
 
 /**

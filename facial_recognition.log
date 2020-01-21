@@ -1532,3 +1532,13 @@
 2020-01-21 10:08:47,062-INFO-channel_manager.py:227 unregister channel: video
 2020-01-21 10:08:47,063-INFO-facial_recognition_handler.py:131 Stop thread:videothread-video.
 2020-01-21 10:08:47,063-INFO-app_manager.py:131 unregister app: video
+2020-01-21 10:16:42,383-INFO-app_manager.py:85 create app manager thread
+2020-01-21 10:16:42,383-INFO-presenter_server.py:79 presenter server starting, type: facial_recognition
+2020-01-21 10:16:48,624-INFO-presenter_socket_server.py:255 create new connection:client-ip:172.16.117.104, client-port:52124, fd:10
+2020-01-21 10:16:48,625-INFO-channel_manager.py:216 register channel: video
+2020-01-21 10:16:48,626-INFO-app_manager.py:115 register app: video
+2020-01-21 10:16:48,881-INFO-presenter_socket_server.py:255 create new connection:client-ip:172.16.117.104, client-port:52134, fd:11
+2020-01-21 10:16:48,882-INFO-facial_recognition_handler.py:120 create videothread-video...
+2020-01-21 10:16:48,883-INFO-channel_manager.py:127 create channel resource, channel_name:video, channel_fd:11, media_type:video
+2020-01-21 10:17:11,646-INFO-facial_recognition_server.py:670 Register face dafzvc succeed
+2020-01-21 10:17:11,646-INFO-web.py:193 Register face success

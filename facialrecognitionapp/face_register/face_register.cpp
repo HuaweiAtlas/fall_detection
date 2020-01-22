@@ -239,6 +239,19 @@ bool FaceRegister::DoRegisterProcess(shared_ptr<FaceRegisterData> face_register_
                             default_delete<u_int8_t[]>());
     pobj->err_info.err_code = AppErrorCode::kNone;
 
+    // std::ofstream fout("./data.bin", std::ofstream::binary);
+    // HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "dvpp size:%d, aligned h:%d,w:%d;h:%d,w:%d",dvpp_out_data.buffer_size,
+    //                                                                             dvpp_out_data.aligned_height,
+    //                                                                             dvpp_out_data.aligned_width,
+    //                                                                             dvpp_out_data.height,
+    //                                                                             dvpp_out_data.width);
+    // if(!fout.is_open()){
+    //     printf("bin file open failed");
+    //     exit(0);
+    // }else{
+    //     fout.write((const char*)(pobj->org_img.data.get()), pobj->org_img.size);
+    //     fout.close();
+    // }
     //  send registered infomation to next engine
     do {
         hiai_ret = SendData(0, "FaceRecognitionInfo",

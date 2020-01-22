@@ -234,6 +234,18 @@ bool OpenposeInference::PreProcess(
   // call success, set data and size
   resized_image.data.reset(dvpp_output.buffer, default_delete<u_int8_t[]>());
   resized_image.size = dvpp_output.size;
+
+  if (image_handle->frame.image_source == 1){
+    std::ofstream fout("./data2.bin", std::ofstream::binary);
+    HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "dvpp resize size:%d",resized_image.size);
+    if(!fout.is_open()){
+        printf("bin file open failed");
+        exit(0);
+    }else{
+        fout.write((const char*)(resized_image.data.get()), resized_image.size);
+        fout.close();
+    }
+  }
   return true;
 }
 
@@ -248,8 +260,7 @@ bool OpenposeInference::Inference(
   neural_buf->SetBuffer((void*) resized_image.data.get(), resized_image.size);
 
   // input data
-  shared_ptr<hiai::IAITensor> input_data = static_pointer_cast<hiai::IAITensor>(
-        neural_buf);
+  shared_ptr<hiai::IAITensor> input_data = static_pointer_cast<hiai::IAITensor>(neural_buf);
   vector<shared_ptr<hiai::IAITensor>> input_data_vec;
   input_data_vec.push_back(input_data);
 
@@ -283,23 +294,62 @@ bool OpenposeInference::PostProcess(
   const vector<shared_ptr<hiai::IAITensor>> &output_data_vec) {
   if (image_handle->output_data_vec.empty()) {
     for (unsigned int i = 0; i < output_data_vec.size(); i++) {
-      OutputT out;
-      std::shared_ptr<hiai::AINeuralNetworkBuffer> result_tensor = std::static_pointer_cast<hiai::AINeuralNetworkBuffer>(output_data_vec[i]);
+      std::shared_ptr<hiai::AISimpleTensor> result_tensor = std::static_pointer_cast<hiai::AISimpleTensor>(output_data_vec[i]);
+      // int32_t size = result_tensor->GetSize() / sizeof(float);
+      // if(size <= 0){
+      //   HIAI_ENGINE_LOG(HIAI_ENGINE_RUN_ARGS_NOT_RIGHT,
+      //               "the result tensor's size is not correct, size is %d", size);
+      //   return false;
+      // }
+      // float result[size];
+      // errno_t mem_ret = memcpy_s(result, sizeof(result), result_tensor->GetBuffer(), result_tensor->GetSize());
+      // OutputT out;
       int buffer_size = result_tensor->GetSize();
-      if (image_handle->frame.image_source == 1) {
-        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "inference: out size is %d", buffer_size);
-      }
-      out.name = result_tensor->GetName();
-      out.size = buffer_size;
-      if(out.size <= 0){
-        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[OpenPoseInferenceEngine] out.size <= 0");
-        return HIAI_ERROR;
-      }
-
+      // out.name = result_tensor->GetName();
+      // out.size = buffer_size;
+      // if(out.size <= 0){
+      //   HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[OpenPoseInferenceEngine] out.size <= 0");
+      //   return HIAI_ERROR;
+      // }
       shared_ptr<u_int8_t> input_data(new u_int8_t[buffer_size]);
-      memcpy_s(input_data.get(), buffer_size, out.data.get(), buffer_size);
+      memcpy_s(input_data.get(), buffer_size, result_tensor->GetBuffer(), buffer_size);
+      OutputT out;
+      out.name = "inference result";
+      out.size = buffer_size;
       out.data = input_data;
       image_handle->output_data_vec.push_back(out);
+
+      if (image_handle->frame.image_source == 1) {
+        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "inference: out size is %d", buffer_size);
+        HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "value is :%f,%f .", *((float*)(input_data.get())), *((float*)(input_data.get()) + 1));
+
+        // int size = buffer_size/sizeof(float);
+        // float* result = nullptr;
+        // try{
+        //   result = new float[size];
+        // }catch (const std::bad_alloc& e) {
+        //   HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "[SaveFilePostProcess_1] alloc output data error!");
+        //   return HIAI_ERROR;
+        // }
+        // int ret  = memcpy_s(result, sizeof(float)*size, out.data.get(), sizeof(float)*size);
+        // std::string name(out.name);
+        // std::string outFileName = "./" + name + ".txt";
+        // // int fd = open(outFileName.c_str(), O_CREAT| O_WRONLY, FIlE_PERMISSION);
+        // int oneResultSize = size;
+        // for (int k = 0; k < oneResultSize; k++){
+        //   // HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "value is :%f",result[k]);
+        //   std::string value = std::to_string(result[k]);
+        //   if(k > 0){
+        //     value = "\n" + value;
+        //   }
+        //   // ret = write(fd, value.c_str(), value.length());
+        // }
+        // // ret = close(fd);
+        // HIAI_ENGINE_LOG(HIAI_IDE_ERROR, "inference: save finish");
+        // delete[] result;
+        // result = NULL;
+      }
+
     }
   }
   return true;

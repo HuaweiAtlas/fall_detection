@@ -17,7 +17,7 @@
 
 1.  <a name="zh-cn_topic_0182554631_li953280133816"></a>获取源码包。
 
-    将[https://gitee.com/Atlas200DK/sample-facialrecognition](https://gitee.com/Atlas200DK/sample-facialrecognition)仓中的代码以Mind Studio安装用户下载至Mind Studio所在Ubuntu服务器的任意目录，例如代码存放路径为：_/home/ascend/sample-facialrecognition_。
+    将[https://github.com/Atlas200DKTest/sample-facialrecognition](https://github.com/Atlas200DKTest/sample-facialrecognition)仓中的代码以Mind Studio安装用户下载至Mind Studio所在Ubuntu服务器的任意目录，例如代码存放路径为：_/home/ascend/sample-facialrecognition_。
 
 2.  获取此应用中所需要的原始网络模型。
 
@@ -39,7 +39,7 @@
     <td class="cellrowborder" valign="top" width="12.04%" headers="mcps1.2.4.1.2 "><p id="zh-cn_topic_0182554631_p9879112516111"><a name="zh-cn_topic_0182554631_p9879112516111"></a><a name="zh-cn_topic_0182554631_p9879112516111"></a>人脸检测网络模型。</p>
     <p id="zh-cn_topic_0182554631_p1087912253112"><a name="zh-cn_topic_0182554631_p1087912253112"></a><a name="zh-cn_topic_0182554631_p1087912253112"></a>是基于Caffe的Resnet10-SSD300模型转换后的网络模型。</p>
     </td>
-    <td class="cellrowborder" valign="top" width="74.65%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0182554631_p188801525813"><a name="zh-cn_topic_0182554631_p188801525813"></a><a name="zh-cn_topic_0182554631_p188801525813"></a>请参考<a href="https://gitee.com/HuaweiAscend/models/tree/master/computer_vision/object_detect/face_detection" target="_blank" rel="noopener noreferrer">https://gitee.com/HuaweiAscend/models/tree/master/computer_vision/object_detect/face_detection</a>目录中README.md下载原始网络模型文件及其对应的权重文件。</p>
+    <td class="cellrowborder" valign="top" width="74.65%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0182554631_p188801525813"><a name="zh-cn_topic_0182554631_p188801525813"></a><a name="zh-cn_topic_0182554631_p188801525813"></a>请参考<a href="https://github.com/HuaweiAscendTest/models/tree/master/computer_vision/object_detect/face_detection" target="_blank" rel="noopener noreferrer">https://github.com/HuaweiAscendTest/models/tree/master/computer_vision/object_detect/face_detection</a>目录中README.md下载原始网络模型文件及其对应的权重文件。</p>
     </td>
     </tr>
     <tr id="zh-cn_topic_0182554631_row11880162511114"><td class="cellrowborder" valign="top" width="13.309999999999999%" headers="mcps1.2.4.1.1 "><p id="zh-cn_topic_0182554631_p1388012251117"><a name="zh-cn_topic_0182554631_p1388012251117"></a><a name="zh-cn_topic_0182554631_p1388012251117"></a>vanillacnn</p>
@@ -47,7 +47,7 @@
     <td class="cellrowborder" valign="top" width="12.04%" headers="mcps1.2.4.1.2 "><p id="zh-cn_topic_0182554631_p1988018251110"><a name="zh-cn_topic_0182554631_p1988018251110"></a><a name="zh-cn_topic_0182554631_p1988018251110"></a>人脸特征点标记网络模型。</p>
     <p id="zh-cn_topic_0182554631_p588013251514"><a name="zh-cn_topic_0182554631_p588013251514"></a><a name="zh-cn_topic_0182554631_p588013251514"></a>是基于Caffe的VanillaCNN模型转换后的网络模型。</p>
     </td>
-    <td class="cellrowborder" valign="top" width="74.65%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0182554631_p28801025319"><a name="zh-cn_topic_0182554631_p28801025319"></a><a name="zh-cn_topic_0182554631_p28801025319"></a>请参考<a href="https://gitee.com/HuaweiAscend/models/tree/master/computer_vision/classification/vanillacnn" target="_blank" rel="noopener noreferrer">https://gitee.com/HuaweiAscend/models/tree/master/computer_vision/classification/vanillacnn</a><span>目录中</span>README.md下载原始网络模型文件及其对应的权重文件。</p>
+    <td class="cellrowborder" valign="top" width="74.65%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0182554631_p28801025319"><a name="zh-cn_topic_0182554631_p28801025319"></a><a name="zh-cn_topic_0182554631_p28801025319"></a>请参考<a href="https://github.com/HuaweiAscendTest/models/tree/master/computer_vision/classification/vanillacnn" target="_blank" rel="noopener noreferrer">https://github.com/HuaweiAscendTest/models/tree/master/computer_vision/classification/vanillacnn</a><span>目录中</span>README.md下载原始网络模型文件及其对应的权重文件。</p>
     </td>
     </tr>
     <tr id="zh-cn_topic_0182554631_row988092511120"><td class="cellrowborder" valign="top" width="13.309999999999999%" headers="mcps1.2.4.1.1 "><p id="zh-cn_topic_0182554631_p108806251513"><a name="zh-cn_topic_0182554631_p108806251513"></a><a name="zh-cn_topic_0182554631_p108806251513"></a>sphereface</p>
@@ -55,7 +55,7 @@
     <td class="cellrowborder" valign="top" width="12.04%" headers="mcps1.2.4.1.2 "><p id="zh-cn_topic_0182554631_p68802251019"><a name="zh-cn_topic_0182554631_p68802251019"></a><a name="zh-cn_topic_0182554631_p68802251019"></a>特征向量获取网络模型。</p>
     <p id="zh-cn_topic_0182554631_p148801125512"><a name="zh-cn_topic_0182554631_p148801125512"></a><a name="zh-cn_topic_0182554631_p148801125512"></a>是基于Caffe的SphereFace模型转换后的网络模型</p>
     </td>
-    <td class="cellrowborder" valign="top" width="74.65%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0182554631_p128806251116"><a name="zh-cn_topic_0182554631_p128806251116"></a><a name="zh-cn_topic_0182554631_p128806251116"></a>请参考<a href="https://gitee.com/HuaweiAscend/models/tree/master/computer_vision/classification/sphereface" target="_blank" rel="noopener noreferrer">https://gitee.com/HuaweiAscend/models/tree/master/computer_vision/classification/sphereface</a><span>目录中</span>README.md下载原始网络模型文件及其对应的权重文件。</p>
+    <td class="cellrowborder" valign="top" width="74.65%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0182554631_p128806251116"><a name="zh-cn_topic_0182554631_p128806251116"></a><a name="zh-cn_topic_0182554631_p128806251116"></a>请参考<a href="https://github.com/HuaweiAscendTest/models/tree/master/computer_vision/classification/sphereface" target="_blank" rel="noopener noreferrer">https://github.com/HuaweiAscendTest/models/tree/master/computer_vision/classification/sphereface</a><span>目录中</span>README.md下载原始网络模型文件及其对应的权重文件。</p>
     </td>
     </tr>
     </tbody>
@@ -270,7 +270,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="33.33333333333333%" headers="mcps1.2.4.1.2 "><p id="zh-cn_topic_0182554631_p1771117413440"><a name="zh-cn_topic_0182554631_p1771117413440"></a><a name="zh-cn_topic_0182554631_p1771117413440"></a>对DVPP接口进行了封装，提供对图片/视频的处理能力。</p>
 </td>
-<td class="cellrowborder" valign="top" width="33.33333333333333%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0182554631_p17112404416"><a name="zh-cn_topic_0182554631_p17112404416"></a><a name="zh-cn_topic_0182554631_p17112404416"></a><a href="https://gitee.com/Atlas200DK/sdk-ezdvpp" target="_blank" rel="noopener noreferrer">https://gitee.com/Atlas200DK/sdk-ezdvpp</a></p>
+<td class="cellrowborder" valign="top" width="33.33333333333333%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0182554631_p17112404416"><a name="zh-cn_topic_0182554631_p17112404416"></a><a name="zh-cn_topic_0182554631_p17112404416"></a><a href="https://github.com/Atlas200DKTest/sdk-ezdvpp" target="_blank" rel="noopener noreferrer">https://github.com/Atlas200DKTest/sdk-ezdvpp</a></p>
 <p id="zh-cn_topic_0182554631_p8711344441"><a name="zh-cn_topic_0182554631_p8711344441"></a><a name="zh-cn_topic_0182554631_p8711344441"></a>下载后请保持文件夹名称为ezdvpp。</p>
 </td>
 </tr>
@@ -278,7 +278,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="33.33333333333333%" headers="mcps1.2.4.1.2 "><p id="zh-cn_topic_0182554631_p4711441449"><a name="zh-cn_topic_0182554631_p4711441449"></a><a name="zh-cn_topic_0182554631_p4711441449"></a>与Presenter Server进行交互的API接口。</p>
 </td>
-<td class="cellrowborder" valign="top" width="33.33333333333333%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0182554631_p15711144204416"><a name="zh-cn_topic_0182554631_p15711144204416"></a><a name="zh-cn_topic_0182554631_p15711144204416"></a><a href="https://gitee.com/Atlas200DK/sdk-presenter/tree/master" target="_blank" rel="noopener noreferrer">https://gitee.com/Atlas200DK/sdk-presenter/tree/master</a></p>
+<td class="cellrowborder" valign="top" width="33.33333333333333%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0182554631_p15711144204416"><a name="zh-cn_topic_0182554631_p15711144204416"></a><a name="zh-cn_topic_0182554631_p15711144204416"></a><a href="https://github.com/Atlas200DKTest/sdk-presenter/tree/master" target="_blank" rel="noopener noreferrer">https://github.com/Atlas200DKTest/sdk-presenter/tree/master</a></p>
 <p id="zh-cn_topic_0182554631_p11711548443"><a name="zh-cn_topic_0182554631_p11711548443"></a><a name="zh-cn_topic_0182554631_p11711548443"></a>请获取此路径下的presenteragent文件夹，下载后请保持文件夹名称为presenteragent。</p>
 </td>
 </tr>
